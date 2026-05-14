@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL/NOISE · Single Release Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #0d0d0d;
+    --void-2: #141414;
+    --void-3: #1a1a1a;
+    --void-4: #222222;
+    --void-5: #2a2a2a;
+    --tungsten: #f0f0f0;
+    --graphite: #888888;
+    --graphite-2: #555555;
+    --signal-blue: #2d7dd2;
+    --signal-blue-dim: rgba(45,125,210,0.15);
+    --signal-blue-border: rgba(45,125,210,0.4);
+    --phosphor: #39d353;
+    --phosphor-dim: rgba(57,211,83,0.12);
+    --phosphor-border: rgba(57,211,83,0.35);
+    --copper: #b5651d;
+    --rec-red: #c0392b;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.15);
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--void);
+    color: var(--tungsten);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    background: var(--void-2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--tungsten);
+  }
+  .logo span { color: var(--signal-blue); }
+  .logo-slash { color: var(--graphite-2); margin: 0 2px; }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .progress-pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--phosphor);
+    background: var(--phosphor-dim);
+    border: 1px solid var(--phosphor-border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    letter-spacing: 0.06em;
+  }
+  .print-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    background: var(--signal-blue);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .print-btn:hover { opacity: 0.85; }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* ── SECTION CARDS ── */
+  .card {
+    background: var(--void-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-header:hover { background: var(--void-3); }
+  .card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--graphite);
+    text-transform: uppercase;
+  }
+  .card-title .accent { color: var(--signal-blue); }
+  .card-chevron {
+    font-size: 10px;
+    color: var(--graphite-2);
+    transition: transform 0.2s;
+  }
+  .card-chevron.open { transform: rotate(180deg); }
+  .card-body { padding: 1.25rem; }
+  .card-body.hidden { display: none; }
+
+  /* ── FORM FIELDS ── */
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .field-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+  label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--graphite);
+    text-transform: uppercase;
+  }
+  input[type="text"],
+  input[type="date"],
+  input[type="url"],
+  select,
+  textarea {
+    background: var(--void-3);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    color: var(--tungsten);
+    font-family: var(--sans);
+    font-size: 15px;
+    padding: 9px 11px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--signal-blue);
+  }
+  input::placeholder, textarea::placeholder { color: var(--graphite-2); }
+  select option { background: var(--void-3); }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  /* ── DAYS COUNTER ── */
+  .days-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0.75rem;
+    padding: 10px 14px;
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .days-counter .count { color: var(--signal-blue); font-size: 22px; font-weight: 700; margin-right: 4px; }
+  .days-counter.urgent .count { color: var(--rec-red); }
+  .days-counter.soon .count { color: var(--copper); }
+
+  /* ── WINDOW SELECTOR ── */
+  .window-selector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .window-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--graphite);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .window-btn:hover { border-color: var(--signal-blue-border); color: var(--tungsten); }
+  .window-btn.active {
+    background: var(--signal-blue-dim);
+    border-color: var(--signal-blue);
+    color: var(--signal-blue);
+  }
+
+  /* ── TIMELINE ── */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--border-strong);
+  }
+  .tl-item {
+    position: relative;
+    margin-bottom: 1rem;
+    padding: 10px 12px 10px 16px;
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: border-color 0.15s;
+  }
+  .tl-item.done { border-color: var(--phosphor-border); background: var(--phosphor-dim); }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--void-4);
+    border: 2px solid var(--graphite-2);
+    transition: all 0.15s;
+  }
+  .tl-item.done::before { background: var(--phosphor); border-color: var(--phosphor); }
+  .tl-item.today-marker { border-color: var(--signal-blue-border); }
+  .tl-item.today-marker::before { background: var(--signal-blue); border-color: var(--signal-blue); }
+  .tl-week {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--graphite);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .tl-week .date-tag {
+    font-size: 9px;
+    color: var(--graphite-2);
+  }
+  .tl-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tungsten);
+    margin-bottom: 2px;
+  }
+  .tl-tasks { list-style: none; margin-top: 6px; }
+  .tl-tasks li {
+    font-size: 13px;
+    color: var(--graphite);
+    padding: 3px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tl-tasks li::before {
+    content: '—';
+    color: var(--graphite-2);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ── CHECKLIST PHASES ── */
+  .phase-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--graphite);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .phase-count {
+    font-size: 10px;
+    color: var(--signal-blue);
+  }
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 6px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    border-radius: 4px;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-item:hover { background: var(--void-3); }
+  .check-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    accent-color: var(--phosphor);
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .check-label {
+    font-size: 15px;
+    color: var(--tungsten);
+    line-height: 1.55;
+  }
+  .check-label.checked {
+    color: var(--graphite-2);
+    text-decoration: line-through;
+  }
+  .phase-notes {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .phase-notes label { margin-bottom: 6px; display: block; }
+
+  /* ── PLATFORM TRACKER ── */
+  .platform-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+  }
+  .platform-card {
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .platform-card:hover { border-color: var(--border-strong); }
+  .platform-card.status-in-progress {
+    border-color: var(--signal-blue-border);
+    background: var(--signal-blue-dim);
+  }
+  .platform-card.status-done {
+    border-color: var(--phosphor-border);
+    background: var(--phosphor-dim);
+  }
+  .platform-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--tungsten);
+    margin-bottom: 5px;
+  }
+  .platform-status {
+    font-size: 11px;
+    color: var(--graphite);
+  }
+  .platform-card.status-in-progress .platform-status { color: var(--signal-blue); }
+  .platform-card.status-done .platform-status { color: var(--phosphor); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar-wrap {
+    background: var(--void-3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    height: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--phosphor);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .progress-stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--graphite);
+  }
+
+  /* ── FOOTER ── */
+  .site-footer {
+    border-top: 1px solid var(--border);
+    padding: 1.25rem 2rem;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--graphite-2);
+    letter-spacing: 0.06em;
+  }
+  .site-footer em { color: var(--graphite); font-style: normal; }
+
+  /* ── RELEASE DAY BADGE ── */
+  .release-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(90deg, rgba(45,125,210,0.2), rgba(57,211,83,0.1));
+    border: 1px solid var(--signal-blue-border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--signal-blue);
+    letter-spacing: 0.08em;
+    margin-top: 0.5rem;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.25rem 0;
+  }
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    body { background: #fff; color: #111; font-size: 12px; }
+    .site-header { position: relative; background: #fff; border-bottom: 2px solid #111; }
+    .logo { color: #111; }
+    .logo span { color: #2d7dd2; }
+    .print-btn, .window-selector, .card-chevron { display: none !important; }
+    .card { background: #fff; border: 1px solid #ddd; page-break-inside: avoid; margin-bottom: 1rem; }
+    .card-header { background: #f5f5f5; }
+    .card-title { color: #555; }
+    .card-body.hidden { display: block !important; }
+    .tl-item { background: #fafafa; border: 1px solid #ddd; }
+    .tl-item.done { background: #f0fff4; border-color: #39d353; }
+    .check-item { border-bottom: 1px solid #eee; }
+    .check-label { color: #111; }
+    .check-label.checked { color: #888; }
+    .platform-card { background: #fafafa; border: 1px solid #ddd; }
+    .platform-card.status-done { background: #f0fff4; border-color: #39d353; }
+    .platform-card.status-in-progress { background: #e8f4fd; border-color: #2d7dd2; }
+    .platform-name { color: #111; }
+    input, select, textarea { background: #fafafa; border: 1px solid #ddd; color: #111; }
+    .days-counter { background: #f5f5f5; border: 1px solid #ddd; }
+    .site-footer { border-top: 1px solid #ddd; color: #888; }
+    .progress-bar-wrap { background: #eee; }
+    .phase-label { color: #555; border-color: #eee; }
+    .label-text, label { color: #555; }
+    .timeline::before { background: #ddd; }
+    .tl-item::before { background: #ddd; border-color: #bbb; }
+    .tl-week, .tl-tasks li { color: #666; }
+    .phase-notes { border-top-color: #eee; }
+    .progress-stats { color: #888; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">SIGNAL<span class="logo-slash">/</span><span>NOISE</span> · RELEASE PLANNER</div>
+  <div class="header-right">
+    <span class="progress-pill" id="header-progress">0% COMPLETE</span>
+    <button class="print-btn" onclick="window.print()">↓ EXPORT PDF</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TRACK INFO -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <span class="card-title"><span class="accent">01</span> · TRACK INFO</span>
+      <span class="card-chevron open">▼</span>
+    </div>
+    <div class="card-body">
+      <div class="field-grid" style="margin-bottom:1rem">
+        <div class="field">
+          <label>Song Title</label>
+          <input type="text" id="song-title" placeholder="Untitled" oninput="updateExport()">
+        </div>
+        <div class="field">
+          <label>Artist / Project Name</label>
+          <input type="text" id="artist-name" placeholder="Your name or project" oninput="updateExport()">
+        </div>
+        <div class="field">
+          <label>Genre</label>
+          <input type="text" id="genre" placeholder="e.g. Gospel, R&B, Indie" oninput="updateExport()">
+        </div>
+        <div class="field">
+          <label>Distributor</label>
+          <select id="distributor" onchange="updateExport()">
+            <option value="">Select distributor</option>
+            <option>DistroKid</option>
+            <option>TuneCore</option>
+            <option>CD Baby</option>
+            <option>Amuse</option>
+            <option>UnitedMasters</option>
+            <option>RouteNote</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>ISRC Code (optional)</label>
+          <input type="text" id="isrc" placeholder="e.g. USRC12345678" oninput="updateExport()">
+        </div>
+        <div class="field">
+          <label>Pre-Save / Pre-Release URL</label>
+          <input type="url" id="presave-url" placeholder="https://..." oninput="updateExport()">
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="field-grid-3">
+        <div class="field">
+          <label>Producer</label>
+          <input type="text" id="collab-producer" placeholder="Name" oninput="updateExport()">
+        </div>
+        <div class="field">
+          <label>Mix Engineer</label>
+          <input type="text" id="collab-mix" placeholder="Name" oninput="updateExport()">
+        </div>
+        <div class="field">
+          <label>Mastering Engineer</label>
+          <input type="text" id="collab-master" placeholder="Name" oninput="updateExport()">
+        </div>
+      </div>
+      <div class="field" style="margin-top:1rem; max-width: 300px;">
+        <label>Featured Artist (optional)</label>
+        <input type="text" id="collab-feat" placeholder="Name" oninput="updateExport()">
+      </div>
+    </div>
+  </div>
+
+  <!-- RELEASE DATE + WINDOW -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <span class="card-title"><span class="accent">02</span> · RELEASE DATE & PLANNING WINDOW</span>
+      <span class="card-chevron open">▼</span>
+    </div>
+    <div class="card-body">
+      <div class="field" style="max-width:220px; margin-bottom:1rem">
+        <label>Target Release Date</label>
+        <input type="date" id="release-date" onchange="buildTimeline()">
+      </div>
+      <div id="days-display" style="display:none" class="days-counter">
+        <span class="count" id="days-count">—</span>
+        <span id="days-label">days until release</span>
+      </div>
+      <div id="release-badge" style="display:none" class="release-badge">
+        ● RELEASE DATE SET — BUILD YOUR PLAN BELOW
+      </div>
+
+      <div style="margin-top:1.25rem">
+        <label style="display:block; margin-bottom:0.6rem">Planning Window</label>
+        <div class="window-selector">
+          <button class="window-btn" onclick="setWindow(4, this)">4 WEEKS</button>
+          <button class="window-btn active" onclick="setWindow(8, this)">8 WEEKS</button>
+          <button class="window-btn" onclick="setWindow(12, this)">12 WEEKS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <span class="card-title"><span class="accent">03</span> · RELEASE TIMELINE</span>
+      <span class="card-chevron open">▼</span>
+    </div>
+    <div class="card-body">
+      <div id="timeline-container">
+        <p style="color: var(--graphite); font-size:13px;">Set a release date above to generate your timeline.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKLISTS -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <span class="card-title"><span class="accent">04</span> · PHASE CHECKLISTS</span>
+      <span class="card-chevron open">▼</span>
+    </div>
+    <div class="card-body" id="checklist-body">
+
+      <!-- Progress -->
+      <div style="margin-bottom:1.5rem">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-stats">
+          <span id="progress-text">0 of 0 tasks complete</span>
+          <span id="progress-pct">0%</span>
+        </div>
+      </div>
+
+      <!-- PRE-PRODUCTION -->
+      <div class="phase-label">
+        Pre-Production
+        <span class="phase-count" id="count-preprod"></span>
+      </div>
+      <div id="phase-preprod">
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Recording complete — final take selected</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Rough mix reviewed and approved</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Final mix completed and delivered</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Master completed — loud check passed</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Stems exported and saved (WAV, 24-bit)</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Lyrics documented and spell-checked</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Song registered with PRO (ASCAP / BMI / SESAC)</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Sample clearances confirmed (if applicable)</span></div>
+      </div>
+      <div class="phase-notes">
+        <label>Notes — Pre-Production</label>
+        <textarea placeholder="Studio notes, version history, anything worth remembering..."></textarea>
+      </div>
+
+      <hr class="divider">
+
+      <!-- ARTWORK + METADATA -->
+      <div class="phase-label">
+        Artwork & Metadata
+        <span class="phase-count" id="count-artwork"></span>
+      </div>
+      <div id="phase-artwork">
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Cover art designed — 3000×3000px minimum</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Cover art approved — no blurry edges, readable at small size</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Song title and artist name spelled correctly on artwork</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Explicit/clean content label confirmed</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">All metadata entered: title, artist, genre, year, BPM</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Featuring/collaborators credited in metadata</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">ISRC code assigned or registered</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">UPC barcode assigned (distributor provides)</span></div>
+      </div>
+      <div class="phase-notes">
+        <label>Notes — Artwork & Metadata</label>
+        <textarea placeholder="Art file locations, designer credits, metadata corrections..."></textarea>
+      </div>
+
+      <hr class="divider">
+
+      <!-- DISTRIBUTION -->
+      <div class="phase-label">
+        Distribution
+        <span class="phase-count" id="count-distro"></span>
+      </div>
+      <div id="phase-distro">
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Distributor account active and in good standing</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Audio file uploaded (WAV, 16-bit 44.1kHz minimum)</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Artwork uploaded and accepted by distributor</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Release date set — minimum 2 weeks out from submission</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Distribution territories selected (worldwide recommended)</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">YouTube Content ID opt-in decision made</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Spotify for Artists profile claimed and verified</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Apple Music for Artists profile claimed</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Submission confirmed — confirmation email received</span></div>
+      </div>
+      <div class="phase-notes">
+        <label>Notes — Distribution</label>
+        <textarea placeholder="Submission confirmation, expected delivery dates, platform status..."></textarea>
+      </div>
+
+      <hr class="divider">
+
+      <!-- MARKETING -->
+      <div class="phase-label">
+        Marketing & Promo
+        <span class="phase-count" id="count-marketing"></span>
+      </div>
+      <div id="phase-marketing">
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Pre-save / pre-release link created and tested</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Link-in-bio updated with pre-save link</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Spotify editorial playlist pitch submitted (via Spotify for Artists)</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Independent playlist curators contacted</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Press / blog outreach sent (if applicable)</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Email list notified — pre-save announcement sent</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Content calendar mapped: countdown posts planned</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Short-form video content filmed (Reel / TikTok)</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Release day posts drafted and scheduled</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Story/countdown content prepared</span></div>
+      </div>
+      <div class="phase-notes">
+        <label>Notes — Marketing & Promo</label>
+        <textarea placeholder="Campaign ideas, influencer contacts, playlist targets, budget..."></textarea>
+      </div>
+
+      <hr class="divider">
+
+      <!-- RELEASE DAY -->
+      <div class="phase-label">
+        Release Day
+        <span class="phase-count" id="count-releaseday"></span>
+      </div>
+      <div id="phase-releaseday">
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Song live on Spotify — stream link confirmed</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Song live on Apple Music — confirmed</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">YouTube audio/video upload live</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Link-in-bio updated with final stream links</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Instagram post published</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">TikTok post published</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">X / Twitter post published</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Email list release announcement sent</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Pinned post updated across all profiles</span></div>
+      </div>
+      <div class="phase-notes">
+        <label>Notes — Release Day</label>
+        <textarea placeholder="Launch notes, surprises, things to fix next time..."></textarea>
+      </div>
+
+      <hr class="divider">
+
+      <!-- POST-RELEASE -->
+      <div class="phase-label">
+        Post-Release (Week 1–4)
+        <span class="phase-count" id="count-post"></span>
+      </div>
+      <div id="phase-post">
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Stream count checked — 7-day snapshot saved</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Save rate reviewed in Spotify for Artists</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Listener geography data noted</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Playlist placements tracked</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Social engagement reviewed — what performed best?</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Follow-up content posted (behind the scenes, process, reaction)</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Revenue / royalties pipeline confirmed active</span></div>
+        <div class="check-item" onclick="toggleCheck(this)"><input type="checkbox"><span class="check-label">Next release direction decided based on data</span></div>
+      </div>
+      <div class="phase-notes">
+        <label>Notes — Post-Release</label>
+        <textarea placeholder="What worked, what didn't, lessons for next release..."></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PLATFORM TRACKER -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <span class="card-title"><span class="accent">05</span> · PLATFORM STATUS</span>
+      <span class="card-chevron open">▼</span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:12px; color:var(--graphite); margin-bottom:1rem;">Click to cycle: Not Started → In Progress → Done</p>
+      <div class="platform-grid" id="platform-grid">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  <em>'The things that excite you are not random. They are connected to your purpose.'</em>
+  &nbsp;·&nbsp; SIGNAL/NOISE · FREQ STUDIO · RMT MEDIA BHAM · EST. 2019
+</footer>
+
+<script>
+const platforms = [
+  'Spotify','Apple Music','YouTube','Instagram','TikTok','X / Twitter',
+  'Facebook','SoundCloud','Amazon Music','Tidal'
+];
+const statuses = ['Not Started','In Progress','Done'];
+const statusClasses = ['','status-in-progress','status-done'];
+const platformState = {};
+
+function buildPlatforms() {
+  const grid = document.getElementById('platform-grid');
+  platforms.forEach(p => {
+    platformState[p] = 0;
+    const card = document.createElement('div');
+    card.className = 'platform-card';
+    card.id = 'plat-' + p.replace(/\s+/g,'');
+    card.innerHTML = `<div class="platform-name">${p.toUpperCase()}</div><div class="platform-status">Not Started</div>`;
+    card.onclick = () => cyclePlatform(p);
+    grid.appendChild(card);
+  });
+}
+
+function cyclePlatform(p) {
+  platformState[p] = (platformState[p] + 1) % 3;
+  const card = document.getElementById('plat-' + p.replace(/\s+/g,''));
+  card.className = 'platform-card ' + statusClasses[platformState[p]];
+  card.querySelector('.platform-status').textContent = statuses[platformState[p]];
+}
+
+let planningWeeks = 8;
+
+function setWindow(weeks, btn) {
+  planningWeeks = weeks;
+  document.querySelectorAll('.window-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildTimeline();
+}
+
+const timelineData = {
+  4: [
+    { week: 4, label: '4 WEEKS OUT', title: 'Foundation Locked', tasks: ['Finalize and master the track','Artwork completed and approved','Metadata entered in distributor'] },
+    { week: 3, label: '3 WEEKS OUT', title: 'Distribution Submitted', tasks: ['Upload to distributor','Set release date','Spotify for Artists claimed'] },
+    { week: 2, label: '2 WEEKS OUT', title: 'Pre-Save Live', tasks: ['Pre-save link created','Link-in-bio updated','Email list notified'] },
+    { week: 1, label: '1 WEEK OUT', title: 'Content Ready', tasks: ['Short-form video filmed','Release posts drafted','Story countdown prepared'] },
+    { week: 0, label: 'RELEASE DAY', title: 'Go Live', tasks: ['Confirm live on all platforms','All social posts published','Link-in-bio final links'] },
+  ],
+  8: [
+    { week: 8, label: '8 WEEKS OUT', title: 'Production Complete', tasks: ['Final mix approved','Mastering underway','Stems exported and saved'] },
+    { week: 6, label: '6 WEEKS OUT', title: 'Assets Locked', tasks: ['Artwork finalized','All metadata entered','ISRC registered'] },
+    { week: 5, label: '5 WEEKS OUT', title: 'Distribution Submitted', tasks: ['Uploaded to distributor','Release date confirmed','Territories set to worldwide'] },
+    { week: 4, label: '4 WEEKS OUT', title: 'Pre-Save Live', tasks: ['Pre-save link created and tested','Spotify editorial pitch submitted','Email list notified'] },
+    { week: 3, label: '3 WEEKS OUT', title: 'Promo Begins', tasks: ['First teaser content posted','Playlist outreach to curators','Press/blog outreach sent'] },
+    { week: 2, label: '2 WEEKS OUT', title: 'Content Push', tasks: ['Short-form video campaign launched','Release posts fully drafted','Story countdown active'] },
+    { week: 1, label: '1 WEEK OUT', title: 'Final Check', tasks: ['Verify live on all test platforms','All posts scheduled in tool','Bio, pinned posts updated'] },
+    { week: 0, label: 'RELEASE DAY', title: 'Go Live', tasks: ['Confirm live on every platform','All social posts publish','Email blast sent'] },
+  ],
+  12: [
+    { week: 12, label: '12 WEEKS OUT', title: 'Project Kickoff', tasks: ['Recording complete — final take selected','Rough mix reviewed','Release strategy outlined'] },
+    { week: 10, label: '10 WEEKS OUT', title: 'Production Complete', tasks: ['Final mix delivered','Mastering complete','PRO registration filed'] },
+    { week: 8, label: '8 WEEKS OUT', title: 'Assets Locked', tasks: ['Artwork approved','Metadata complete','ISRC registered'] },
+    { week: 7, label: '7 WEEKS OUT', title: 'Distribution Submitted', tasks: ['Uploaded to distributor','Release date set','Content ID decision made'] },
+    { week: 6, label: '6 WEEKS OUT', title: 'Pre-Save Live', tasks: ['Pre-save link live','Spotify for Artists verified','Email list notified'] },
+    { week: 4, label: '4 WEEKS OUT', title: 'Promo Campaign Starts', tasks: ['Teaser content series begins','Playlist curator outreach','Blog/press outreach'] },
+    { week: 3, label: '3 WEEKS OUT', title: 'Content Production', tasks: ['Short-form video filmed','Release posts drafted','Collaboration posts planned'] },
+    { week: 2, label: '2 WEEKS OUT', title: 'Scheduling', tasks: ['All content scheduled in tool','Story countdown live','Final promotional push'] },
+    { week: 1, label: '1 WEEK OUT', title: 'Final Prep', tasks: ['Verify platform delivery','All assets double-checked','Team briefed'] },
+    { week: 0, label: 'RELEASE DAY', title: 'Go Live', tasks: ['Confirm live everywhere','All social published','Analytics baseline saved'] },
+  ]
+};
+
+function buildTimeline() {
+  const input = document.getElementById('release-date').value;
+  const container = document.getElementById('timeline-container');
+  const daysDisplay = document.getElementById('days-display');
+  const relBadge = document.getElementById('release-badge');
+
+  if (!input) {
+    container.innerHTML = '<p style="color:var(--graphite);font-size:13px;">Set a release date above to generate your timeline.</p>';
+    daysDisplay.style.display = 'none';
+    relBadge.style.display = 'none';
+    return;
+  }
+
+  const releaseDate = new Date(input + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diffMs = releaseDate - today;
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  daysDisplay.style.display = 'flex';
+  relBadge.style.display = 'inline-flex';
+  const countEl = document.getElementById('days-count');
+  const labelEl = document.getElementById('days-label');
+
+  if (diffDays < 0) {
+    countEl.textContent = Math.abs(diffDays);
+    labelEl.textContent = 'days since release';
+    daysDisplay.className = 'days-counter';
+  } else if (diffDays <= 7) {
+    countEl.textContent = diffDays;
+    labelEl.textContent = diffDays === 0 ? '— RELEASE DAY' : 'days until release';
+    daysDisplay.className = 'days-counter urgent';
+  } else if (diffDays <= 21) {
+    countEl.textContent = diffDays;
+    labelEl.textContent = 'days until release';
+    daysDisplay.className = 'days-counter soon';
+  } else {
+    countEl.textContent = diffDays;
+    labelEl.textContent = 'days until release';
+    daysDisplay.className = 'days-counter';
+  }
+
+  const milestones = timelineData[planningWeeks];
+  let html = '<div class="timeline">';
+
+  milestones.forEach(m => {
+    const msDate = new Date(releaseDate);
+    msDate.setDate(msDate.getDate() - (m.week * 7));
+    const isPast = msDate < today;
+    const isToday = msDate.toDateString() === today.toDateString();
+    const isRelease = m.week === 0;
+
+    const dateStr = msDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const extraClass = isPast ? 'done' : (isToday ? 'today-marker' : '');
+
+    html += `<div class="tl-item ${extraClass}">
+      <div class="tl-week">
+        <span>${isRelease ? '● RELEASE DAY' : m.label}</span>
+        <span class="date-tag">${dateStr}</span>
+      </div>
+      <div class="tl-title">${m.title}</div>
+      <ul class="tl-tasks">
+        ${m.tasks.map(t => `<li>${t}</li>`).join('')}
+      </ul>
+    </div>`;
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function toggleCard(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.card-chevron');
+  body.classList.toggle('hidden');
+  chevron.classList.toggle('open');
+}
+
+function toggleCheck(item) {
+  const cb = item.querySelector('input[type="checkbox"]');
+  const lbl = item.querySelector('.check-label');
+  cb.checked = !cb.checked;
+  lbl.classList.toggle('checked', cb.checked);
+  updateProgress();
+}
+
+function updateProgress() {
+  const all = document.querySelectorAll('#checklist-body .check-item input[type="checkbox"]');
+  const checked = document.querySelectorAll('#checklist-body .check-item input[type="checkbox"]:checked');
+  const total = all.length;
+  const done = checked.length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${done} of ${total} tasks complete`;
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('header-progress').textContent = pct + '% COMPLETE';
+
+  const phases = [
+    { id: 'phase-preprod', countId: 'count-preprod' },
+    { id: 'phase-artwork', countId: 'count-artwork' },
+    { id: 'phase-distro', countId: 'count-distro' },
+    { id: 'phase-marketing', countId: 'count-marketing' },
+    { id: 'phase-releaseday', countId: 'count-releaseday' },
+    { id: 'phase-post', countId: 'count-post' },
+  ];
+  phases.forEach(p => {
+    const items = document.querySelectorAll(`#${p.id} .check-item input[type="checkbox"]`);
+    const checkedItems = document.querySelectorAll(`#${p.id} .check-item input[type="checkbox"]:checked`);
+    const el = document.getElementById(p.countId);
+    if (el) el.textContent = `${checkedItems.length}/${items.length}`;
+  });
+}
+
+function updateExport() {}
+
+buildPlatforms();
+updateProgress();
+buildTimeline();
+</script>
+</body>
+</html>
