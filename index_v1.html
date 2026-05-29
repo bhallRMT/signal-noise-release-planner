@@ -488,7 +488,6 @@
   <div class="header-right">
     <span class="progress-pill" id="header-progress">0% COMPLETE</span>
     <button class="print-btn" onclick="window.print()">↓ EXPORT PDF</button>
-    <button class="print-btn" onclick="clearState()" style="background:var(--void-4); margin-left: 8px;">✕ RESET</button>
   </div>
 </header>
 
@@ -962,105 +961,11 @@ function updateProgress() {
   });
 }
 
-// LocalStorage Persistence
-function saveState() {
-  const state = {
-    inputs: {},
-    checkboxes: [],
-    platformState: platformState,
-    planningWeeks: planningWeeks,
-    notes: {}
-  };
-
-  document.querySelectorAll('input[type="text"], input[type="date"], input[type="url"], select').forEach(el => {
-    if (el.id) state.inputs[el.id] = el.value;
-  });
-
-  document.querySelectorAll('textarea').forEach((el, index) => {
-    state.notes[index] = el.value;
-  });
-
-  document.querySelectorAll('.check-item input[type="checkbox"]').forEach((el, index) => {
-    if (el.checked) state.checkboxes.push(index);
-  });
-
-  localStorage.setItem('releasePlannerState', JSON.stringify(state));
-}
-
-function loadState() {
-  const saved = localStorage.getItem('releasePlannerState');
-  if (!saved) return;
-  
-  try {
-    const state = JSON.parse(saved);
-    
-    if (state.inputs) {
-      for (const [id, value] of Object.entries(state.inputs)) {
-        const el = document.getElementById(id);
-        if (el) el.value = value;
-      }
-    }
-
-    if (state.notes) {
-      document.querySelectorAll('textarea').forEach((el, index) => {
-        if (state.notes[index]) el.value = state.notes[index];
-      });
-    }
-
-    if (state.checkboxes) {
-      const allCheckboxes = document.querySelectorAll('.check-item input[type="checkbox"]');
-      state.checkboxes.forEach(index => {
-        if (allCheckboxes[index]) {
-          allCheckboxes[index].checked = true;
-          allCheckboxes[index].nextElementSibling.classList.add('checked');
-        }
-      });
-    }
-
-    if (state.planningWeeks) {
-      planningWeeks = state.planningWeeks;
-      document.querySelectorAll('.window-btn').forEach(b => {
-        b.classList.remove('active');
-        if (parseInt(b.textContent) === planningWeeks) b.classList.add('active');
-      });
-    }
-
-    if (state.platformState) {
-      Object.assign(platformState, state.platformState);
-      platforms.forEach(p => {
-        const card = document.getElementById('plat-' + p.replace(/\s+/g,''));
-        if (card) {
-          card.className = 'platform-card ' + statusClasses[platformState[p]];
-          card.querySelector('.platform-status').textContent = statuses[platformState[p]];
-        }
-      });
-    }
-  } catch (e) {
-    console.error('Error loading state', e);
-  }
-}
-
-function clearState() {
-  if(confirm("Are you sure you want to reset the planner? This will clear all data.")) {
-    localStorage.removeItem('releasePlannerState');
-    window.location.reload();
-  }
-}
-
 function updateExport() {}
 
 buildPlatforms();
-loadState();
 updateProgress();
 buildTimeline();
-
-document.body.addEventListener('input', saveState);
-document.body.addEventListener('change', saveState);
-document.body.addEventListener('click', (e) => {
-  if (e.target.tagName === 'BUTTON' || e.target.type === 'checkbox' || e.target.closest('.check-item') || e.target.closest('.platform-card') || e.target.closest('.window-btn')) {
-    setTimeout(saveState, 50);
-  }
-});
 </script>
 </body>
 </html>
