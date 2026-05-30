@@ -447,6 +447,77 @@
     margin: 1.25rem 0;
   }
 
+  /* ── SESSION MANAGEMENT ── */
+  .session-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    background: transparent;
+    color: var(--graphite);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .session-btn:hover { border-color: var(--signal-blue-border); color: var(--tungsten); }
+  .session-btn.save { border-color: var(--phosphor-border); color: var(--phosphor); }
+  .session-btn.save:hover { background: var(--phosphor-dim); }
+  .session-btn.new-release { border-color: var(--copper); color: var(--copper); }
+  .session-btn.new-release:hover { background: rgba(181,101,29,0.12); }
+
+  .sessions-select {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    background: var(--void-3);
+    color: var(--graphite);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    padding: 5px 8px;
+    cursor: pointer;
+    max-width: 160px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .sessions-select:hover, .sessions-select:focus { border-color: var(--signal-blue-border); color: var(--tungsten); }
+  .sessions-select option { background: var(--void-3); color: var(--tungsten); }
+
+  .session-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border-strong);
+    margin: 0 2px;
+  }
+
+  .session-toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--void-4);
+    border: 1px solid var(--phosphor-border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--phosphor);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+  }
+  .session-toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 768px) {
+    .sessions-select { max-width: 100px; font-size: 10px; }
+    .session-btn { font-size: 10px; padding: 5px 8px; }
+    .session-divider { display: none; }
+    .header-right { gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+  }
+
   /* ── PRINT STYLES ── */
   @media print {
     body { background: #fff; color: #111; font-size: 12px; }
@@ -487,10 +558,17 @@
   <div class="logo">SIGNAL<span class="logo-slash">/</span><span>NOISE</span> · RELEASE PLANNER</div>
   <div class="header-right">
     <span class="progress-pill" id="header-progress">0% COMPLETE</span>
+    <select class="sessions-select" id="sessions-select" onchange="loadSession(this.value)" title="Load a saved release">
+      <option value="">— SESSIONS —</option>
+    </select>
+    <button class="session-btn save" onclick="saveSession()">↑ SAVE</button>
+    <button class="session-btn new-release" onclick="newRelease()">+ NEW RELEASE</button>
+    <div class="session-divider"></div>
     <button class="print-btn" onclick="window.print()">↓ EXPORT PDF</button>
-    <button class="print-btn" onclick="clearState()" style="background:var(--void-4); margin-left: 8px;">✕ RESET</button>
+    <button class="print-btn" onclick="clearState()" style="background:var(--void-4);">✕ RESET</button>
   </div>
 </header>
+<div class="session-toast" id="session-toast"></div>
 
 <div class="container">
 
@@ -1049,10 +1127,205 @@ function clearState() {
 
 function updateExport() {}
 
+// ── SESSION MANAGEMENT ──────────────────────────────────────────────
+
+const SESSIONS_KEY = 'releasePlannerSessions';
+
+function getSessions() {
+  try { return JSON.parse(localStorage.getItem(SESSIONS_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+
+function setSessions(sessions) {
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+function getSessionLabel() {
+  const title = document.getElementById('song-title').value.trim();
+  const artist = document.getElementById('artist-name').value.trim();
+  const base = title || artist || 'Untitled Release';
+  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+  return `${base} · ${date}`;
+}
+
+function getSessionKey(label) {
+  return label.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase().slice(0, 60);
+}
+
+function saveSession() {
+  const defaultLabel = getSessionLabel();
+  const label = prompt('Name this release session:', defaultLabel);
+  if (!label) return;
+
+  const sessions = getSessions();
+  const key = getSessionKey(label);
+
+  // Capture full current state
+  const state = {
+    label,
+    savedAt: new Date().toISOString(),
+    inputs: {},
+    checkboxes: [],
+    platformState: platformState,
+    planningWeeks: planningWeeks,
+    notes: {}
+  };
+
+  document.querySelectorAll('input[type="text"], input[type="date"], input[type="url"], select').forEach(el => {
+    if (el.id) state.inputs[el.id] = el.value;
+  });
+  document.querySelectorAll('textarea').forEach((el, i) => { state.notes[i] = el.value; });
+  document.querySelectorAll('.check-item input[type="checkbox"]').forEach((el, i) => {
+    if (el.checked) state.checkboxes.push(i);
+  });
+
+  sessions[key] = state;
+  setSessions(sessions);
+  populateSessionsDropdown(key);
+  showToast(`✓ Saved — "${label}"`);
+}
+
+function loadSession(key) {
+  if (!key) return;
+  const sessions = getSessions();
+  const state = sessions[key];
+  if (!state) return;
+
+  // Restore inputs
+  if (state.inputs) {
+    for (const [id, value] of Object.entries(state.inputs)) {
+      const el = document.getElementById(id);
+      if (el) el.value = value;
+    }
+  }
+  if (state.notes) {
+    document.querySelectorAll('textarea').forEach((el, i) => {
+      if (state.notes[i] !== undefined) el.value = state.notes[i];
+    });
+  }
+  // Restore checkboxes
+  const allCheckboxes = document.querySelectorAll('.check-item input[type="checkbox"]');
+  allCheckboxes.forEach((el, i) => {
+    el.checked = false;
+    el.nextElementSibling.classList.remove('checked');
+  });
+  if (state.checkboxes) {
+    state.checkboxes.forEach(i => {
+      if (allCheckboxes[i]) {
+        allCheckboxes[i].checked = true;
+        allCheckboxes[i].nextElementSibling.classList.add('checked');
+      }
+    });
+  }
+  // Restore platform state
+  if (state.platformState) {
+    Object.assign(platformState, state.platformState);
+    platforms.forEach(p => {
+      const card = document.getElementById('plat-' + p.replace(/\s+/g,''));
+      if (card) {
+        card.className = 'platform-card ' + statusClasses[platformState[p]];
+        card.querySelector('.platform-status').textContent = statuses[platformState[p]];
+      }
+    });
+  }
+  // Restore planning window
+  if (state.planningWeeks) {
+    planningWeeks = state.planningWeeks;
+    document.querySelectorAll('.window-btn').forEach(b => {
+      b.classList.remove('active');
+      if (parseInt(b.textContent) === planningWeeks) b.classList.add('active');
+    });
+  }
+
+  updateProgress();
+  buildTimeline();
+  saveState(); // sync current session to autosave slot
+  showToast(`✓ Loaded — "${state.label}"`);
+}
+
+function newRelease() {
+  const sessions = getSessions();
+  const hasSessions = Object.keys(sessions).length > 0;
+  const songTitle = document.getElementById('song-title').value.trim();
+
+  let confirmMsg = 'Start a new release? Current data will be cleared.\n\nSave first if you want to keep it.';
+  if (songTitle) confirmMsg = `Start a new release?\n\n"${songTitle}" will be cleared. Save first if needed.`;
+
+  if (!confirm(confirmMsg)) return;
+
+  // Clear autosave
+  localStorage.removeItem('releasePlannerState');
+
+  // Clear all inputs
+  document.querySelectorAll('input[type="text"], input[type="date"], input[type="url"]').forEach(el => el.value = '');
+  document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+  document.querySelectorAll('textarea').forEach(el => el.value = '');
+
+  // Clear checkboxes
+  document.querySelectorAll('.check-item input[type="checkbox"]').forEach(el => {
+    el.checked = false;
+    el.nextElementSibling.classList.remove('checked');
+  });
+
+  // Reset platforms
+  platforms.forEach(p => {
+    platformState[p] = 0;
+    const card = document.getElementById('plat-' + p.replace(/\s+/g,''));
+    if (card) {
+      card.className = 'platform-card';
+      card.querySelector('.platform-status').textContent = 'Not Started';
+    }
+  });
+
+  // Reset planning window to default
+  planningWeeks = 8;
+  document.querySelectorAll('.window-btn').forEach(b => {
+    b.classList.remove('active');
+    if (b.textContent.trim() === '8 WEEKS') b.classList.add('active');
+  });
+
+  // Reset dropdown selection
+  document.getElementById('sessions-select').value = '';
+
+  updateProgress();
+  buildTimeline();
+  showToast('✓ New release started');
+}
+
+function populateSessionsDropdown(selectKey) {
+  const select = document.getElementById('sessions-select');
+  const sessions = getSessions();
+  const keys = Object.keys(sessions).sort((a, b) => {
+    return new Date(sessions[b].savedAt) - new Date(sessions[a].savedAt);
+  });
+
+  // Rebuild options
+  select.innerHTML = '<option value="">— SESSIONS (' + keys.length + ') —</option>';
+  keys.forEach(key => {
+    const s = sessions[key];
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = s.label;
+    if (key === selectKey) opt.selected = true;
+    select.appendChild(opt);
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('session-toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+
 buildPlatforms();
 loadState();
 updateProgress();
 buildTimeline();
+populateSessionsDropdown(null);
 
 document.body.addEventListener('input', saveState);
 document.body.addEventListener('change', saveState);
